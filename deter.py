@@ -112,12 +112,57 @@ def fourier_series_approximation(t, values, n_terms):
     
     return result
 
+def residual_time_series(deter_predict):
+    mean = deter_predict.mean()
+    # Step 2: Subtract the mean from each data point and square the result
+    squared_diffs = [(deter - mean) ** 2 for deter in deter_predict]
+
+    # Step 3: Sum the squared differences
+    sum_squared_diffs = sum(squared_diffs)
+
+    # Step 4: Divide by n-1 (Bessel's correction)
+    n = len(deter_predict)
+    variance = sum_squared_diffs / (n - 1)
+
+    # Step 5: Take the square root to get the standard deviation
+    std_dev = math.sqrt(variance)
+
+    residual = []
+    for deter in deter_predict:
+        residual.append((deter-mean)/std_dev)
+        
+    return residual
+
+def markov_matrix(residual):
+    n = len(residual)
+    pos_to_neg = 0
+    pos_to_pos = 0
+    neg_to_neg = 0
+    neg_to_pos = 0
+    
+    for i in range(1, n):  # Iterating up to n-1, as residual[i] refers to index i
+        if residual[i] >= 0 and residual[i-1] >= 0:
+            pos_to_pos += 1
+        elif residual[i] >= 0 and residual[i-1] < 0:
+            neg_to_pos += 1
+        elif residual[i] < 0 and residual[i-1] >= 0:
+            pos_to_neg += 1
+        else: 
+            neg_to_neg += 1
+    matrix = [
+    [pos_to_pos/(pos_to_neg+pos_to_pos), pos_to_neg/(pos_to_neg+pos_to_pos)],
+    [neg_to_pos/(neg_to_neg+neg_to_pos), neg_to_neg/(neg_to_neg+neg_to_pos)]
+    ]
+    return matrix
+
 # Parameters
 n_terms = 10  # Number of terms in the Fourier series
 
 # Calculate Fourier series approximation
 approximation = fourier_series_approximation(time, values, n_terms)
-print(approximation)
+residual = residual_time_series(approximation)
+matrix = markov_matrix(residual)
+print(matrix)
 
 # # Plotting the original data and the approximation
 # plt.figure(figsize=(12, 6))
