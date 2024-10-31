@@ -79,20 +79,22 @@
 
 
 import numpy as np
+from datapull import pull_data
 import matplotlib.pyplot as plt
 import math
+import pandas as pd
 
-# Your data stored in a variable called 'data'
-data = [
-    [527, 527, 408, 486, 560, 575, 530, 512, 535, 556, 578, 545, 560, 558, 553, 547, 567, 575, 578, 579, 516, 575, 536, 540, 581, 541, 578, 579, 592, 577, 566, 571, 581, 576, 584, 582, 598, 588, 594, 557, 595, 607, 603, 571, 597, 605, 552, 561, 598, 582, 589, 590, 616, 609, 605, 608, 610, 591, 605, 511, 590],
-    [555, 559, 538, 545, 505, 550, 538, 559, 550, 560, 561, 569, 555, 578, 556, 554, 561, 590, 592, 542, 371, 551, 592, 565, 577, 578, 557, 580, 571, 577, 579, 563, 590, 581, 574, 534, 495, 593, 588, 559, 563, 580, 536, 587, 595, 589, 593, 594, 578, 584, 588, 596, 604, 581, 586, 588, 589, 586, 612, 597, 376]
-]
-
-# Assuming you want to work with the first series in 'data'
-values = data[0]
-
-# Create a time array (assuming uniform spacing for simplicity)
-time = np.arange(len(values))  # 0, 1, 2, ..., len(values)-1
+def read_data(yearStart, yearEnd):
+    pull_data(yearStart, yearEnd)
+    df = pd.read_csv('max_dhi_by_month_day.csv')
+    
+    # Extract columns that contain the years in the specified range
+    year_columns = [str(year) for year in range(yearStart, yearEnd + 1)]
+    # Now, you can extract the data for the specified years
+    year_data = df[year_columns]
+    # Convert the DataFrame to a NumPy array
+    year_data = year_data.to_numpy()
+    return year_data.T
 
 # Define the Fourier Series approximation function
 def fourier_series_approximation(t, values, n_terms):
@@ -133,22 +135,25 @@ def residual_time_series(deter_predict):
         
     return residual
 
-def markov_matrix(residual):
-    n = len(residual)
+def markov_matrix(residuals):
+    residuals = np.array(residuals)
+    year, n = residuals.shape
     pos_to_neg = 0
     pos_to_pos = 0
     neg_to_neg = 0
     neg_to_pos = 0
     
-    for i in range(1, n):  # Iterating up to n-1, as residual[i] refers to index i
-        if residual[i] >= 0 and residual[i-1] >= 0:
-            pos_to_pos += 1
-        elif residual[i] >= 0 and residual[i-1] < 0:
-            neg_to_pos += 1
-        elif residual[i] < 0 and residual[i-1] >= 0:
-            pos_to_neg += 1
-        else: 
-            neg_to_neg += 1
+    for residual in residuals:
+        for i in range(1, n):  # Iterating up to n-1, as residual[i] refers to index i
+            if residual[i] >= 0 and residual[i-1] >= 0:
+                pos_to_pos += 1
+            elif residual[i] >= 0 and residual[i-1] < 0:
+                neg_to_pos += 1
+            elif residual[i] < 0 and residual[i-1] >= 0:
+                pos_to_neg += 1
+            else: 
+                neg_to_neg += 1
+                
     matrix = [
     [pos_to_pos/(pos_to_neg+pos_to_pos), pos_to_neg/(pos_to_neg+pos_to_pos)],
     [neg_to_pos/(neg_to_neg+neg_to_pos), neg_to_neg/(neg_to_neg+neg_to_pos)]
@@ -156,21 +161,27 @@ def markov_matrix(residual):
     return matrix
 
 # Parameters
-n_terms = 10  # Number of terms in the Fourier series
+n_terms = 4  # Number of terms in the Fourier series
 
-# Calculate Fourier series approximation
-approximation = fourier_series_approximation(time, values, n_terms)
-residual = residual_time_series(approximation)
-matrix = markov_matrix(residual)
-print(matrix)
+def compute_matrix(yearStart, yearEnd):
+    data = read_data(yearStart, yearEnd)
+    values = data[0]
+    # # Create a time array (assuming uniform spacing for simplicity)
+    time = np.arange(len(values))  # 0, 1, 2, ..., len(values)-1
+    
+    residuals = []
+    for values in data:
+        # Calculate Fourier series approximation
+        approximation = fourier_series_approximation(time, values, n_terms)
+        residual = residual_time_series(approximation)
+        residuals.append(residual)
+    matrix = markov_matrix(residuals)
+    print(matrix)
 
-# # Plotting the original data and the approximation
-# plt.figure(figsize=(12, 6))
-# plt.plot(time, values, label='Original Data', color='orange', marker='o')
-# plt.plot(time, approximation, label=f'Fourier Series Approximation (n={n_terms})', color='blue')
-# plt.title('Fourier Series Approximation of Your Data')
-# plt.xlabel('Time')
-# plt.ylabel('Value')
-# plt.legend()
-# plt.grid()
-# plt.show()
+#compute_matrix(2007, 2022)
+for i in range(2007, 2023):
+    compute_matrix(i, i)
+#1. tune the n_terms (refer back to the documentation)
+#2. reduce redundant datapull: right now its pulling from each year csv twice
+#3. reduce redundance inverting in read_data
+#4. liabilities when cv file cut off at certain year/years within the range of start/end)

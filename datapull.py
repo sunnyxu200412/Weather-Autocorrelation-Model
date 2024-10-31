@@ -1,6 +1,6 @@
 import pandas as pd
 
-def read_data(yearStart, yearEnd):
+def pull_data(yearStart, yearEnd):
     # Initialize an empty DataFrame to store the final result
     df_final = pd.DataFrame()
 
@@ -14,8 +14,8 @@ def read_data(yearStart, yearEnd):
         df['Month_Day'] = df['PeriodStart'].dt.strftime('%m-%d')  # Create a column for month and day
 
         # Group by 'Month_Day' and get the max value of 'DHI'
-        max_dhi = df.groupby('Month_Day')['DHI'].max().reset_index()
-        max_dhi = max_dhi.rename(columns={'DHI': str(year)})  # Rename 'DHI' column to the year
+        max_dhi = df.groupby('Month_Day')['GHI'].max().reset_index()
+        max_dhi = max_dhi.rename(columns={'GHI': str(year)})  # Rename 'DHI' column to the year
         # Merge into final DataFrame
         if df_final.empty:
             df_final = max_dhi
@@ -29,6 +29,3 @@ def read_data(yearStart, yearEnd):
     df_final.to_csv('max_dhi_by_month_day.csv', index=False)
 
     return df_final
-
-# Example usage
-df_result = read_data(2021, 2022)
