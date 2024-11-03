@@ -178,9 +178,9 @@ def compute_matrix(yearStart, yearEnd):
     matrix = markov_matrix(residuals)
     print(matrix)
 
-#compute_matrix(2007, 2022)
-for i in range(2007, 2023):
-    compute_matrix(i, i)
+compute_matrix(2007, 2022)
+# for i in range(2007, 2023):
+#     compute_matrix(i, i)
 #1. tune the n_terms (refer back to the documentation)
 #2. reduce redundant datapull: right now its pulling from each year csv twice
 #3. reduce redundance inverting in read_data
